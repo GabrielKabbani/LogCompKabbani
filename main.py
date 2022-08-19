@@ -47,4 +47,4 @@ for i in range(0,len(concat)-1,2):
     elif concat[i+1]==chars[11]:
         sum-=concat[i+2]
 
-print(sum)
+print(sum) 
