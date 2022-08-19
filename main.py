@@ -34,6 +34,8 @@ for i in range(len(words)):
         raise Exception("Não colocou sequência correta")
     words[i]=int(words[i])
 
+if len(words)!=len(operators)+1 or len(operators)==0:
+        raise Exception("Não colocou sequência correta")
 concat=[]
 for i in range(0,len(words)):
     concat.append(words[i])
