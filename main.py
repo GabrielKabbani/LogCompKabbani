@@ -19,6 +19,9 @@ class Tokenizer:
         int=""
 
         if self.position < len(self.source): #esse é o EOF     
+            if "+" not in self.source and "-" not in self.source:
+                self.next = Token("ERROR", self.source[self.position])
+                return self.next
 
             if self.source[self.position] == "+":
                 self.next = Token("PLUS", self.source[self.position])
