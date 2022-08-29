@@ -1,52 +1,142 @@
-import sys 
+import sys
 
 x=sys.argv[1]
 
-x=x.replace(" ","")
 
-words=[]
+class Token:
+    def __init__(self, type,value):
+        self.type = type
+        self.value = value
+    
+class Tokenizer:
+    def __init__(self, source):
+        self.source = source
+        self.position = 0
+        self.next = None
+        
+    def selectNext(self):
+        token_incomplete=True
+        int=""
 
-chars=["0","1","2","3","4","5","6","7","8","9","+","-"]
+        if self.position < len(self.source): #esse é o EOF     
 
-operators=[]
+            if self.source[self.position] == "+":
+                self.next = Token("PLUS", self.source[self.position])
 
-word=""
-last_op_index=0
-for i in range(len(x)):
-    if x[i]==chars[10] or x[i]==chars[11]:
-        operators.append(x[i])
-        words.append(word)
-        word=""
-        last_op_index=i
-    else:
-        word+=x[i]
-word=""
+                while self.source[self.position+1]==" ":
+                    self.position+=1
 
-for i in range(last_op_index+1, len(x)):
-    word+=x[i]
-words.append(word)
+                self.position += 1
 
-for i in range(len(words)):
-    for j in words[i]:
-        if j not in chars:
-            raise Exception("Não colocou sequência correta")
-    if words[i]=="":
-        raise Exception("Não colocou sequência correta")
-    words[i]=int(words[i])
+                return self.next
 
-if len(words)!=len(operators)+1 or len(operators)==0:
-        raise Exception("Não colocou sequência correta")
-concat=[]
-for i in range(0,len(words)):
-    concat.append(words[i])
-    if i < len(operators):
-            concat.append(operators[i])
+            elif self.source[self.position] == "-":
+                self.next = Token("MINUS", self.source[self.position])
 
-sum=words[0]
-for i in range(0,len(concat)-1,2):
-    if concat[i+1]==chars[10]:
-        sum+=concat[i+2]
-    elif concat[i+1]==chars[11]:
-        sum-=concat[i+2]
+                while self.source[self.position+1]==" ":
+                    self.position+=1
 
-print(sum) 
+                self.position += 1
+
+                return self.next
+
+            elif self.source[self.position] == " ":
+                self.next = Token("SPACE", self.source[self.position])
+                self.position+=1
+
+                return self.next
+
+            else: #futuramente implementar enum pra verificar se é numero mesmo
+                if self.source[self.position].isdigit():
+                    int+=self.source[self.position]
+                else:
+                    self.next = Token("ERROR", self.source[self.position])
+                    self.position+=1
+                    return self.next
+                
+                if self.position == len(self.source)-1:
+                    token_incomplete = False
+                else:
+                    for i in range(self.position,len(self.source)):
+                        if token_incomplete:
+                            if i != len(self.source) - 1:
+                                if self.source[i+1].isdigit():
+                                    int+=self.source[i+1]
+                                else:
+                                    token_incomplete = False
+                            else:
+                                token_incomplete = False
+
+
+            if token_incomplete == False:
+                self.next = Token("INT", int)
+                self.position += len(int)
+                token_incomplete = True
+                int = ""
+                return self.next
+
+        else:
+            self.next = Token("EOF", "")
+            return self.next
+
+
+class Parser:
+    
+    def __init__(self, token):
+        self.token = token
+
+    @staticmethod
+    def parseExpression(token):
+
+        token.selectNext()
+        result=0
+
+        if token.next.type == "SPACE":
+            while(token.next.type == "SPACE"):
+                token.selectNext()
+
+        if token.next.type == "ERROR":
+            raise Exception("Invalid")
+            
+        if token.next.type == "INT":
+            result = int(token.next.value)
+            token.selectNext()
+            while token.next.type == "PLUS" or token.next.type == "MINUS" or token.next.type == "SPACE":
+                if token.next.type == "PLUS":
+                    token.selectNext()
+                    if token.next.type == "SPACE":
+                        result+=0
+                    elif token.next.type == "INT":
+                        result += int(token.next.value)
+                    else:
+                        raise Exception("Invalid")
+
+                elif token.next.type == "MINUS":
+                    token.selectNext()
+                    if token.next.type == "SPACE":
+                        result-=0
+                    elif token.next.type == "INT":
+                        result -= int(token.next.value)
+                    else:
+                        raise Exception("Invalid")
+
+                token.selectNext()
+            
+            if token.next.type == "EOF":
+                return result
+
+        else:
+            raise Exception("Invalid")
+                    
+    @staticmethod
+    def run(math):
+        tokens = Tokenizer(math)
+        output = Parser.parseExpression(tokens)
+
+        if output != None:
+            print(output)       
+
+def main():
+	Parser.run(sys.argv[1])
+
+main()
