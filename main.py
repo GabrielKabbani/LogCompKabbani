@@ -1,7 +1,8 @@
 import sys
-
+import re
 x=sys.argv[1]
 
+#tirar token space
 
 class Token:
     def __init__(self, type,value):
@@ -19,7 +20,7 @@ class Tokenizer:
         int=""
 
         if self.position < len(self.source): #esse é o EOF     
-            if "+" not in self.source and "-" not in self.source:
+            if "+" not in self.source and "-" not in self.source and "*" not in self.source and "/" not in self.source:
                 self.next = Token("ERROR", self.source[self.position])
                 return self.next
 
@@ -35,6 +36,26 @@ class Tokenizer:
 
             elif self.source[self.position] == "-":
                 self.next = Token("MINUS", self.source[self.position])
+
+                while self.source[self.position+1]==" ":
+                    self.position+=1
+
+                self.position += 1
+
+                return self.next
+
+            elif self.source[self.position] == "*":
+                self.next = Token("MULT", self.source[self.position])
+
+                while self.source[self.position+1]==" ":
+                    self.position+=1
+
+                self.position += 1
+
+                return self.next
+            
+            elif self.source[self.position] == "/":
+                self.next = Token("DIV", self.source[self.position])
 
                 while self.source[self.position+1]==" ":
                     self.position+=1
@@ -89,7 +110,7 @@ class Parser:
         self.token = token
 
     @staticmethod
-    def parseExpression(token):
+    def parse_term(token):
 
         token.selectNext()
         result=0
@@ -104,42 +125,65 @@ class Parser:
         if token.next.type == "INT":
             result = int(token.next.value)
             token.selectNext()
-            while token.next.type == "PLUS" or token.next.type == "MINUS" or token.next.type == "SPACE":
-                if token.next.type == "PLUS":
+            while token.next.type == "MULT" or token.next.type == "DIV" or token.next.type == "SPACE":
+                if token.next.type == "MULT":
                     token.selectNext()
-                    if token.next.type == "SPACE":
-                        result+=0
-                    elif token.next.type == "INT":
-                        result += int(token.next.value)
+                    if token.next.type == "INT":
+                        result *= int(token.next.value)
                     else:
                         raise Exception("Invalid")
 
-                elif token.next.type == "MINUS":
+                elif token.next.type == "DIV":
                     token.selectNext()
-                    if token.next.type == "SPACE":
-                        result-=0
-                    elif token.next.type == "INT":
-                        result -= int(token.next.value)
+                    if token.next.type == "INT":
+                        result //= int(token.next.value)
                     else:
                         raise Exception("Invalid")
 
                 token.selectNext()
             
-            if token.next.type == "EOF":
-                return result
+            
+            return result
 
         else:
             raise Exception("Invalid")
+
+    @staticmethod
+    def parse_expression(token):
+        result = Parser.parse_term(token)
+
+        while token.next.type == "PLUS" or token.next.type == "MINUS":
+            if token.next.type == "PLUS":
+                result += Parser.parse_term(token)
+                token.selectNext()
+
+            elif token.next.type == "MINUS":
+                result -= Parser.parse_term(token)
+                token.selectNext()
+
+        if token.next.type == "EOF":
+                return result
+
+        
                     
     @staticmethod
     def run(math):
         tokens = Tokenizer(math)
-        output = Parser.parseExpression(tokens)
+        output = Parser.parse_expression(tokens)
 
         if output != None:
-            print(output)       
+            print(output)      
+
+
+class Pre_pro:
+
+    @staticmethod
+    def filter(txt):
+        return re.sub(r'//*.*\n?', '', txt)
+
 
 def main():
-	Parser.run(sys.argv[1])
+    # limpar comentarios antes com um metodo filter. usar newline pra saber quando acabou
+	Parser.run(Pre_pro.filter(sys.argv[1]))
 
 main()
