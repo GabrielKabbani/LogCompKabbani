@@ -19,16 +19,15 @@ class Tokenizer:
         token_incomplete=True
         int=""
 
-        if self.position < len(self.source): #esse é o EOF     
-            if "+" not in self.source and "-" not in self.source and "*" not in self.source and "/" not in self.source:
+        if self.position < len(self.source): #esse é o EOF 
+            while self.source[self.position]==" ":
+                    self.position+=1
+            if "+" not in self.source and "-" not in self.source and "*" not in self.source and "/" not in self.source and len(self.source)>1:
                 self.next = Token("ERROR", self.source[self.position])
                 return self.next
 
             if self.source[self.position] == "+":
                 self.next = Token("PLUS", self.source[self.position])
-
-                while self.source[self.position+1]==" ":
-                    self.position+=1
 
                 self.position += 1
 
@@ -37,18 +36,12 @@ class Tokenizer:
             elif self.source[self.position] == "-":
                 self.next = Token("MINUS", self.source[self.position])
 
-                while self.source[self.position+1]==" ":
-                    self.position+=1
-
                 self.position += 1
 
                 return self.next
 
             elif self.source[self.position] == "*":
                 self.next = Token("MULT", self.source[self.position])
-
-                while self.source[self.position+1]==" ":
-                    self.position+=1
 
                 self.position += 1
 
@@ -57,16 +50,7 @@ class Tokenizer:
             elif self.source[self.position] == "/":
                 self.next = Token("DIV", self.source[self.position])
 
-                while self.source[self.position+1]==" ":
-                    self.position+=1
-
                 self.position += 1
-
-                return self.next
-
-            elif self.source[self.position] == " ":
-                self.next = Token("SPACE", self.source[self.position])
-                self.position+=1
 
                 return self.next
 
@@ -90,8 +74,7 @@ class Tokenizer:
                                     token_incomplete = False
                             else:
                                 token_incomplete = False
-
-
+                    
             if token_incomplete == False:
                 self.next = Token("INT", int)
                 self.position += len(int)
@@ -115,17 +98,13 @@ class Parser:
         token.selectNext()
         result=0
 
-        if token.next.type == "SPACE":
-            while(token.next.type == "SPACE"):
-                token.selectNext()
-
         if token.next.type == "ERROR":
             raise Exception("Invalid")
             
         if token.next.type == "INT":
             result = int(token.next.value)
             token.selectNext()
-            while token.next.type == "MULT" or token.next.type == "DIV" or token.next.type == "SPACE":
+            while token.next.type == "MULT" or token.next.type == "DIV":
                 if token.next.type == "MULT":
                     token.selectNext()
                     if token.next.type == "INT":
@@ -160,7 +139,7 @@ class Parser:
             elif token.next.type == "MINUS":
                 result -= Parser.parse_term(token)
                 token.selectNext()
-
+        token.selectNext()
         if token.next.type == "EOF":
                 return result
 
@@ -179,11 +158,19 @@ class Pre_pro:
 
     @staticmethod
     def filter(txt):
-        return re.sub(r'//*.*\n?', '', txt)
+        new=""
+        comments=False
+        for i in range(len(txt)):
+            if i>0:
+                if txt[i]=="/" and txt[i-1]=="/":
+                    new = new[0:len(new)-1]
+                    comments=True
+            if comments == False:
+                new+=txt[i]
+        return new
 
 
 def main():
-    # limpar comentarios antes com um metodo filter. usar newline pra saber quando acabou
 	Parser.run(Pre_pro.filter(sys.argv[1]))
 
 main()
