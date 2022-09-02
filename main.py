@@ -20,11 +20,13 @@ class Tokenizer:
         int=""
 
         if self.position < len(self.source): #esse é o EOF 
-            while self.source[self.position]==" ":
-                    self.position+=1
-            if "+" not in self.source and "-" not in self.source and "*" not in self.source and "/" not in self.source and len(self.source)>1:
+            
+            if "+" not in self.source and "-" not in self.source and "*" not in self.source and "/" not in self.source and " " in self.source:
                 self.next = Token("ERROR", self.source[self.position])
                 return self.next
+
+            while self.source[self.position]==" ":
+                    self.position+=1
 
             if self.source[self.position] == "+":
                 self.next = Token("PLUS", self.source[self.position])
@@ -53,6 +55,7 @@ class Tokenizer:
                 self.position += 1
 
                 return self.next
+
 
             else: #futuramente implementar enum pra verificar se é numero mesmo
                 if self.source[self.position].isdigit():
@@ -121,7 +124,7 @@ class Parser:
 
                 token.selectNext()
             
-            
+
             return result
 
         else:
@@ -134,11 +137,10 @@ class Parser:
         while token.next.type == "PLUS" or token.next.type == "MINUS":
             if token.next.type == "PLUS":
                 result += Parser.parse_term(token)
-                token.selectNext()
 
             elif token.next.type == "MINUS":
                 result -= Parser.parse_term(token)
-                token.selectNext()
+        
         token.selectNext()
         if token.next.type == "EOF":
                 return result
@@ -163,10 +165,12 @@ class Pre_pro:
         for i in range(len(txt)):
             if i>0:
                 if txt[i]=="/" and txt[i-1]=="/":
-                    new = new[0:len(new)-1]
+                    new = new[0:i-2]
                     comments=True
+                    break
             if comments == False:
                 new+=txt[i]
+
         return new
 
 
