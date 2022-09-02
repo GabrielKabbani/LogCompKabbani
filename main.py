@@ -165,7 +165,10 @@ class Pre_pro:
         for i in range(len(txt)):
             if i>0:
                 if txt[i]=="/" and txt[i-1]=="/":
-                    new = new[0:i-2]
+                    if i>2:
+                        new = new[0:i-2]
+                    else:
+                        new = new[0:i-1]
                     comments=True
                     break
             if comments == False:
