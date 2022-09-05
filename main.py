@@ -19,15 +19,11 @@ class Tokenizer:
         token_incomplete=True
         num=""
 
+        while self.position < len(self.source) and self.source[self.position] == " ":
+            self.position+=1
+
         if self.position < len(self.source): #esse é o EOF 
             
-            if "+" not in self.source and "-" not in self.source and "*" not in self.source and "/" not in self.source and " " in self.source:
-                self.next = Token("ERROR", self.source[self.position])
-                return self.next
-
-            while self.source[self.position]==" ":
-                    self.position+=1
-
             if self.source[self.position] == "+":
                 self.next = Token("PLUS", self.source[self.position])
 
@@ -188,18 +184,10 @@ class Pre_pro:
 
     @staticmethod
     def filter(txt):
-        new=""
-        comments=False
         for i in range(len(txt)):
-            if i>0:
-                if txt[i]=="/" and txt[i-1]=="/":
-                    new = new[0:i-1]
-                    comments=True
-                    break
-            if comments == False:
-                new+=txt[i]
-
-        return new
+            if txt[i] == "/" and txt[i+1] == "/":
+                return txt[:i]
+        return txt
 
 
 def main():
