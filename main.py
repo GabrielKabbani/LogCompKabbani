@@ -198,7 +198,6 @@ class Pre_pro:
                     break
             if comments == False:
                 new+=txt[i]
-        print("NEW: {}".format(new))
 
         return new
 
