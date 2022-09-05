@@ -17,7 +17,7 @@ class Tokenizer:
         
     def selectNext(self):
         token_incomplete=True
-        int=""
+        num=""
 
         if self.position < len(self.source): #esse é o EOF 
             
@@ -56,10 +56,24 @@ class Tokenizer:
 
                 return self.next
 
+            elif self.source[self.position] == "(":
+                self.next = Token("PAR_OPEN", self.source[self.position])
+
+                self.position += 1
+
+                return self.next
+
+            elif self.source[self.position] == ")":
+                self.next = Token("PAR_CLOSE", self.source[self.position])
+
+                self.position += 1
+
+                return self.next
+
 
             else: #futuramente implementar enum pra verificar se é numero mesmo
                 if self.source[self.position].isdigit():
-                    int+=self.source[self.position]
+                    num+=self.source[self.position]
                 else:
                     self.next = Token("ERROR", self.source[self.position])
                     self.position+=1
@@ -72,17 +86,17 @@ class Tokenizer:
                         if token_incomplete:
                             if i != len(self.source) - 1:
                                 if self.source[i+1].isdigit():
-                                    int+=self.source[i+1]
+                                    num+=self.source[i+1]
                                 else:
                                     token_incomplete = False
                             else:
                                 token_incomplete = False
                     
             if token_incomplete == False:
-                self.next = Token("INT", int)
-                self.position += len(int)
+                self.next = Token("INT", int(num))
+                self.position += len(num)
                 token_incomplete = True
-                int = ""
+                num = ""
                 return self.next
 
         else:
@@ -96,64 +110,78 @@ class Parser:
         self.token = token
 
     @staticmethod
-    def parse_term(token):
-
-        token.selectNext()
-        result=0
-
-        if token.next.type == "ERROR":
-            raise Exception("Invalid")
-            
-        if token.next.type == "INT":
-            result = int(token.next.value)
-            token.selectNext()
-            while token.next.type == "MULT" or token.next.type == "DIV":
-                if token.next.type == "MULT":
-                    token.selectNext()
-                    if token.next.type == "INT":
-                        result *= int(token.next.value)
-                    else:
-                        raise Exception("Invalid")
-
-                elif token.next.type == "DIV":
-                    token.selectNext()
-                    if token.next.type == "INT":
-                        result //= int(token.next.value)
-                    else:
-                        raise Exception("Invalid")
-
-                token.selectNext()
-            
-
-            return result
-
-        else:
-            raise Exception("Invalid")
-
-    @staticmethod
     def parse_expression(token):
         result = Parser.parse_term(token)
 
         while token.next.type == "PLUS" or token.next.type == "MINUS":
             if token.next.type == "PLUS":
+                token.selectNext()
                 result += Parser.parse_term(token)
 
             elif token.next.type == "MINUS":
+                token.selectNext()
                 result -= Parser.parse_term(token)
         
-        token.selectNext()
-        if token.next.type == "EOF":
-                return result
+
+        return result
+
+    @staticmethod
+    def parse_term(token):
+        result = Parser.parse_factor(token)
+
+        while token.next.type == "DIV" or token.next.type == "MULT":
+            if token.next.type == "DIV":
+                token.selectNext()
+                result //= Parser.parse_factor(token)
+    
+
+            elif token.next.type == "MULT":
+                token.selectNext()
+                result *= Parser.parse_factor(token)
+        
+    
+
+        return result
+
+    @staticmethod
+    def parse_factor(token):
+
+        if token.next.type == "PLUS":
+            token.selectNext()
+            result=Parser.parse_factor(token)
+
+        elif token.next.type == "MINUS":
+            token.selectNext()
+            result=-Parser.parse_factor(token)
+
+        elif token.next.type == "PAR_OPEN":
+            token.selectNext()
+            result=Parser.parse_expression(token)
+            if token.next.type != "PAR_CLOSE":
+                raise Exception("Invalid")
+            token.selectNext()
+        elif token.next.type == "INT":
+            result = token.next.value
+            token.selectNext()
+
+        else:
+            raise Exception("Invalid")
+        
+        return result
+
+        
 
         
                     
     @staticmethod
     def run(math):
         tokens = Tokenizer(math)
+        tokens.selectNext()
         output = Parser.parse_expression(tokens)
-
-        if output != None:
-            print(output)      
+        if output != None and tokens.next.type == "EOF":
+            print(output)    
+        else:
+            raise Exception("Invalid")
 
 
 class Pre_pro:
