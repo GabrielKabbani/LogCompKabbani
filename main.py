@@ -2,12 +2,56 @@ import sys
 import re
 x=sys.argv[1]
 
-#tirar token space
 
 class Token:
-    def __init__(self, type,value):
+    def __init__(self, type, value):
         self.type = type
         self.value = value
+
+class Node:
+    def __init__(self, value, children = []):
+        self.value = value
+        self.children = children
+
+    def evaluate(self):
+        pass
+
+class BinOp(Node):
+    def evaluate(self):
+        first = self.children[0].evaluate()
+        second = self.children[1].evaluate()
+
+        if self.value == "+":
+            return first + second
+
+        elif self.value == "-":
+            return first - second
+
+        elif self.value == "*":
+            return first * second
+
+        elif self.value == "/":
+            return int(first // second)
+
+class UnOp(Node):
+    def evaluate(self):
+        child = self.children[0].evaluate()
+
+        if self.value == "+":
+            return child
+        
+        elif self.value == "-":
+            return -child
+
+class IntVal(Node):
+    def evaluate(self):
+        return int(self.value)
+
+class NoOp(Node):
+    def evaluate(self):
+        pass
+
+        
     
 class Tokenizer:
     def __init__(self, source):
@@ -108,16 +152,10 @@ class Parser:
     @staticmethod
     def parse_expression(token):
         result = Parser.parse_term(token)
-
         while token.next.type == "PLUS" or token.next.type == "MINUS":
-            if token.next.type == "PLUS":
-                token.selectNext()
-                result += Parser.parse_term(token)
-
-            elif token.next.type == "MINUS":
-                token.selectNext()
-                result -= Parser.parse_term(token)
-        
+            value=token.next.value
+            token.selectNext()
+            result = BinOp(value, [result, Parser.parse_term(token)])
 
         return result
 
@@ -126,56 +164,49 @@ class Parser:
         result = Parser.parse_factor(token)
 
         while token.next.type == "DIV" or token.next.type == "MULT":
-            if token.next.type == "DIV":
+                value = token.next.value
                 token.selectNext()
-                result //= Parser.parse_factor(token)
-    
-
-            elif token.next.type == "MULT":
-                token.selectNext()
-                result *= Parser.parse_factor(token)
-        
-    
+                result = BinOp(value, [result, Parser.parse_factor(token)])
 
         return result
 
     @staticmethod
     def parse_factor(token):
+        result = 0
 
-        if token.next.type == "PLUS":
+        if token.next.type == "INT":
+            value = token.next.value
+            result = IntVal(value)
             token.selectNext()
-            result=Parser.parse_factor(token)
 
-        elif token.next.type == "MINUS":
+        elif token.next.type == "PLUS" or token.next.type == "MINUS":
+            value = token.next.value
             token.selectNext()
-            result=-Parser.parse_factor(token)
+            result= UnOp(value, [Parser.parse_factor(token)])
 
         elif token.next.type == "PAR_OPEN":
             token.selectNext()
             result=Parser.parse_expression(token)
             if token.next.type != "PAR_CLOSE":
-                raise Exception("Invalid")
+                raise Exception("Invalid, missing closing parenthesis")
             token.selectNext()
-        elif token.next.type == "INT":
-            result = token.next.value
-            token.selectNext()
+
+        elif token.next.type == "PAR_CLOSE":
+            raise Exception("Invalid, missing opening parenthesis")
 
         else:
             raise Exception("Invalid")
         
         return result
 
-        
-
-        
-                    
+                  
     @staticmethod
     def run(math):
         tokens = Tokenizer(math)
         tokens.selectNext()
         output = Parser.parse_expression(tokens)
         if output != None and tokens.next.type == "EOF":
-            print(output)    
+            print(output.evaluate())    
         else:
             raise Exception("Invalid")
 
