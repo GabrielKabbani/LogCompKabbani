@@ -202,7 +202,7 @@ class Parser:
                   
     @staticmethod
     def run(math):
-        tokens = Tokenizer(math)
+        tokens = Tokenizer(Pre_pro.filter(math))
         tokens.selectNext()
         output = Parser.parse_expression(tokens)
         if output != None and tokens.next.type == "EOF":
@@ -222,6 +222,8 @@ class Pre_pro:
 
 
 def main():
-	Parser.run(Pre_pro.filter(sys.argv[1]))
+    with open(sys.argv[1], "r") as file:
+	    Parser.run(file.read())
+
 
 main()
