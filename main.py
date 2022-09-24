@@ -61,13 +61,13 @@ class NoOp(Node):
 
 class SymbolTable():
 
-	@staticmethod
-	def getter(x):
-		return symbol_table[x]
+    @staticmethod
+    def getter(x):
+        return symbol_table[x]
 
-	@staticmethod
-	def setter(x, y):
-		symbol_table[x] = y
+    @staticmethod
+    def setter(x, y):
+        symbol_table[x] = y
         
 class Identifier(Node):
 
@@ -76,13 +76,13 @@ class Identifier(Node):
 
 class Printer(Node):
 
-	def evaluate(self):
-		print(self.children[0].evaluate())
+    def evaluate(self):
+        print(self.children[0].evaluate())
 
 class Assignment(Node):
 
-	def evaluate(self):
-		SymbolTable.setter(self.children[0], self.children[1].evaluate())
+    def evaluate(self):
+        SymbolTable.setter(self.children[0], self.children[1].evaluate())
     
 class Tokenizer:
     def __init__(self, source):
@@ -186,8 +186,6 @@ class Tokenizer:
 
             else: #futuramente implementar enum pra verificar se é numero mesmo
                 if self.source[self.position].isdigit():
-                    if self.source[self.position+1].isalpha():
-                        raise Exception("variable cannot start with a number")
                     num+=self.source[self.position]
                 else:
                     raise Exception("Invalid, cannot begin with this value")
@@ -206,6 +204,7 @@ class Tokenizer:
                                 token_incomplete = False
                     
             if token_incomplete == False:
+                print("entrou")
                 self.next = Token("INT", int(num))
                 self.position += len(num)
                 token_incomplete = True
@@ -281,10 +280,9 @@ class Parser:
     def parse_statement(token):
 
         result = NoOp(None)
-
+        print(token.next.type)
         if token.next.type == "IDENTIFIER":
             result = token.next.value
-
             token.selectNext()
 
             if token.next.type == "EQUALS":
@@ -329,6 +327,9 @@ class Parser:
             token.selectNext()
             return result
 
+        elif token.next.type == "INT":
+            raise Exception("var cannot start with number")
+
     @staticmethod
     def parse_block(token):
         if token.next.type == "KEY_OPEN":
@@ -337,13 +338,12 @@ class Parser:
             raise Exception("Missing opening keys")
 
         node = Block("", [])
-        
-        if token.source[-1]!= "}":
-            raise Exception("Missing closing keys")
 
         while token.next.type != "KEY_CLOSE":
             child = Parser.parse_statement(token)
             node.children.append(child)
+            if token.next.type == "EOF":
+                raise Exception("Missing closing keys")
         
         token.selectNext()
         return node
@@ -373,7 +373,7 @@ class Pre_pro:
 
 def main():
     with open(sys.argv[1], "r") as file:
-	    Parser.run(file.read())
+        Parser.run(file.read())
 
 
 main()
