@@ -186,6 +186,8 @@ class Tokenizer:
 
             else: #futuramente implementar enum pra verificar se é numero mesmo
                 if self.source[self.position].isdigit():
+                    if self.source[self.position+1].isalpha():
+                        raise Exception("variable cannot start with a number")
                     num+=self.source[self.position]
                 else:
                     raise Exception("Invalid, cannot begin with this value")
