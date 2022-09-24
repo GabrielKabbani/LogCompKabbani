@@ -1,7 +1,18 @@
+import symbol
 import sys
 import re
-x=sys.argv[1]
 
+#adaptar tokenizer pra englobar os novos. CHECK
+#parser de acordo com foto
+#criar as funcoes block e statement
+#criar symbol table CHECK
+#no factor meter o identifier, lembrando que a saida dele é um nó identifier. CHECK
+#toda saida do statement eh um filho do block. os filhos nao retornam nada, soh precisa fazer um for e evaluate na ordem certa.
+#criar uma classe pros nós tipo assignment pro =. na esquerda vai o identifier e na direita o expression. ele soh da evaluate no da direita. CHECK
+#o evaluate do identifier eh o getter da symbol table. CHECK
+
+reserved_words = ["Print"]
+symbol_table = {}
 
 class Token:
     def __init__(self, type, value):
@@ -15,6 +26,12 @@ class Node:
 
     def evaluate(self):
         pass
+
+class Block(Node):
+
+    def evaluate(self):
+        for statement in self.children:
+            statement.evaluate()
 
 class BinOp(Node):
     def evaluate(self):
@@ -51,7 +68,30 @@ class NoOp(Node):
     def evaluate(self):
         pass
 
+class SymbolTable():
+
+	@staticmethod
+	def getter(x):
+		return symbol_table[x]
+
+	@staticmethod
+	def setter(x, y):
+		symbol_table[x] = y
         
+class Identifier():
+
+    def evaluate(self):
+        return SymbolTable.getter(self.value)
+
+class Printer(Node):
+
+	def evaluate(self):
+		print(self.children[0].evaluate())
+
+class Assignment(Node):
+
+	def evaluate(self):
+		SymbolTable.setter(self.children[0], self.children[1].evaluate())
     
 class Tokenizer:
     def __init__(self, source):
@@ -110,14 +150,55 @@ class Tokenizer:
 
                 return self.next
 
+            elif self.source[self.position] == "{":
+                self.next = Token("KEY_OPEN", self.source[self.position])
+
+                self.position += 1
+
+                return self.next
+
+            elif self.source[self.position] == "}":
+                self.next = Token("KEY_CLOSE", self.source[self.position])
+
+                self.position += 1
+
+                return self.next
+
+            elif self.source[self.position] == "=":
+                self.next = Token("EQUALS", self.source[self.position])
+
+                self.position += 1
+
+                return self.next
+            
+            elif self.source[self.position] == ";":
+                self.next = Token("SEMICOLON", self.source[self.position])
+
+                self.position += 1
+
+                return self.next
+
+            elif self.source[self.position].isalpha():
+
+                id = self.source[self.position]
+                self.position += 1
+
+                while self.source[self.position].isalpha() or self.source[self.position].isdigit() or self.source[self.position] == "_" and self.position < len(self.source):
+                    id += self.source[self.position]
+                    self.position +=1
+
+                if id in reserved_words:
+                    self.next = Token(id, id)
+                else:
+                    self.next = Token("IDENTIFIER", id)
+
+
 
             else: #futuramente implementar enum pra verificar se é numero mesmo
                 if self.source[self.position].isdigit():
                     num+=self.source[self.position]
                 else:
-                    self.next = Token("ERROR", self.source[self.position])
-                    self.position+=1
-                    return self.next
+                    raise Exception("Invalid, cannot begin with this value")
                 
                 if self.position == len(self.source)-1:
                     token_incomplete = False
@@ -179,6 +260,10 @@ class Parser:
             result = IntVal(value)
             token.selectNext()
 
+        elif token.next.type == "IDENTIFIER":
+            result = Identifier(token.next.value)
+            token.selectNext()
+
         elif token.next.type == "PLUS" or token.next.type == "MINUS":
             value = token.next.value
             token.selectNext()
@@ -199,12 +284,78 @@ class Parser:
         
         return result
 
+    
+    @staticmethod
+    def parse_statement(token):
+
+        result = NoOp(None)
+
+        if token.next.type == "IDENTIFIER":
+            result = token.next.value
+
+            token.selectNext()
+
+            if token.next.type == "EQUALS":
+                token.selectNext()
+
+                result = Assignment("EQUALS", [result, Parser.parse_expression(token)])
+                token.selectNext()
+
+                if token.next.type == "SEMICOLON":
+                    token.selectNext()
+                    return result
+                else:
+                    raise Exception("Missing ';'")
+            else:
+                raise Exception("Invalid")
+
+        elif token.next.type == "Print":
+            token.selectNext()
+
+            if token.next.type == "PAR_OPEN":
+
+                token.selectNext()
+                display = Parser.parse_expression(token)
+
+                if token.next.type == "PAR_CLOSE":
+
+                    result = Printer("Print", [display])
+                    token.selectNext()
+
+                    if token.next.type == "SEMICOLON":
+                        token.selectNext()
+                        return result
+                    else:
+                        raise Exception("Missing ';'")
+                else:
+                    raise Exception("Missing closing parenthesis")
+            else:
+                raise Exception("Invalid")
+
+    @staticmethod
+    def parse_block(token):
+        if token.next.type == "KEY_OPEN":
+            token.selectNext()
+        else:
+            raise Exception("Missing opening keys")
+
+        node = Block("", [])
+
+        while token.next.type != "KEY_CLOSE":
+            child = Parser.parse_statement(token)
+            node.children.append(child)
+        
+        token.selectNext()
+        return node
+
+                    
+
                   
     @staticmethod
     def run(math):
         tokens = Tokenizer(Pre_pro.filter(math))
         tokens.selectNext()
-        output = Parser.parse_expression(tokens)
+        output = Parser.parse_block(tokens)
         if output != None and tokens.next.type == "EOF":
             print(output.evaluate())    
         else:
