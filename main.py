@@ -204,7 +204,6 @@ class Tokenizer:
                                 token_incomplete = False
                     
             if token_incomplete == False:
-                print("entrou")
                 self.next = Token("INT", int(num))
                 self.position += len(num)
                 token_incomplete = True
@@ -280,7 +279,6 @@ class Parser:
     def parse_statement(token):
 
         result = NoOp(None)
-        print(token.next.type)
         if token.next.type == "IDENTIFIER":
             result = token.next.value
             token.selectNext()
