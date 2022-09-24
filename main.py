@@ -2,15 +2,6 @@ import symbol
 import sys
 import re
 
-#adaptar tokenizer pra englobar os novos. CHECK
-#parser de acordo com foto
-#criar as funcoes block e statement
-#criar symbol table CHECK
-#no factor meter o identifier, lembrando que a saida dele é um nó identifier. CHECK
-#toda saida do statement eh um filho do block. os filhos nao retornam nada, soh precisa fazer um for e evaluate na ordem certa.
-#criar uma classe pros nós tipo assignment pro =. na esquerda vai o identifier e na direita o expression. ele soh da evaluate no da direita. CHECK
-#o evaluate do identifier eh o getter da symbol table. CHECK
-
 reserved_words = ["Print"]
 symbol_table = {}
 
@@ -78,7 +69,7 @@ class SymbolTable():
 	def setter(x, y):
 		symbol_table[x] = y
         
-class Identifier():
+class Identifier(Node):
 
     def evaluate(self):
         return SymbolTable.getter(self.value)
@@ -102,7 +93,6 @@ class Tokenizer:
     def selectNext(self):
         token_incomplete=True
         num=""
-
         while self.position < len(self.source) and self.source[self.position] == " ":
             self.position+=1
 
@@ -183,7 +173,7 @@ class Tokenizer:
                 id = self.source[self.position]
                 self.position += 1
 
-                while self.source[self.position].isalpha() or self.source[self.position].isdigit() or self.source[self.position] == "_" and self.position < len(self.source):
+                while self.source[self.position].isalpha() or self.source[self.position].isdigit() or self.source[self.position] == "_" and self.position < len(self.source)-1:
                     id += self.source[self.position]
                     self.position +=1
 
@@ -299,7 +289,8 @@ class Parser:
                 token.selectNext()
 
                 result = Assignment("EQUALS", [result, Parser.parse_expression(token)])
-                token.selectNext()
+                
+                # token.selectNext()
 
                 if token.next.type == "SEMICOLON":
                     token.selectNext()
@@ -332,6 +323,10 @@ class Parser:
             else:
                 raise Exception("Invalid")
 
+        elif token.next.type == "SEMICOLON":
+            token.selectNext()
+            return result
+
     @staticmethod
     def parse_block(token):
         if token.next.type == "KEY_OPEN":
@@ -344,6 +339,7 @@ class Parser:
         while token.next.type != "KEY_CLOSE":
             child = Parser.parse_statement(token)
             node.children.append(child)
+            # print(token.next.type)
         
         token.selectNext()
         return node
@@ -353,11 +349,12 @@ class Parser:
                   
     @staticmethod
     def run(math):
+        # tokens = Tokenizer(Pre_pro.filter(math.replace("\n","")))
         tokens = Tokenizer(Pre_pro.filter(math))
         tokens.selectNext()
         output = Parser.parse_block(tokens)
         if output != None and tokens.next.type == "EOF":
-            print(output.evaluate())    
+            output.evaluate()
         else:
             raise Exception("Invalid")
 
@@ -365,11 +362,10 @@ class Parser:
 class Pre_pro:
 
     @staticmethod
-    def filter(txt):
-        for i in range(len(txt)):
-            if txt[i] == "/" and txt[i+1] == "/":
-                return txt[:i]
-        return txt
+    def filter(source: str):
+        source = re.sub(re.compile("//.*?\n"), "", source)
+        source = re.sub("\s+", " ", source)
+        return source.replace("\n", "")
 
 
 def main():
