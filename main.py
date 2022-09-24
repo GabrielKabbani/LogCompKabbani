@@ -337,11 +337,13 @@ class Parser:
             raise Exception("Missing opening keys")
 
         node = Block("", [])
+        
+        if token.source[-1]!= "}":
+            raise Exception("Missing closing keys")
 
         while token.next.type != "KEY_CLOSE":
             child = Parser.parse_statement(token)
             node.children.append(child)
-            # print(token.next.type)
         
         token.selectNext()
         return node
@@ -351,7 +353,6 @@ class Parser:
                   
     @staticmethod
     def run(math):
-        # tokens = Tokenizer(Pre_pro.filter(math.replace("\n","")))
         tokens = Tokenizer(Pre_pro.filter(math))
         tokens.selectNext()
         output = Parser.parse_block(tokens)
