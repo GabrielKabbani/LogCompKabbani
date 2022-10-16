@@ -119,7 +119,7 @@ class Printer(Node):
 class Reader(Node):
 
     def evaluate(self):
-        return int(input("Insert value: "))
+        return int(input())
 
 class Assignment(Node):
 
