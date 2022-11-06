@@ -44,13 +44,13 @@ class BinOp(Node):
                 return (int(first[0] // second[0]), "i32")
 
             elif self.value == "==":
-                return (first[0] == second[0], "i32")
+                return (int(first[0] == second[0]), "i32")
 
             elif self.value == ">":
-                return (first[0] > second[0], "i32")
+                return (int(first[0] > second[0]), "i32")
 
             elif self.value == "<":
-                return (first[0] < second[0], "i32")
+                return (int(first[0] < second[0]), "i32")
 
             elif self.value == "&&":
                 return (first[0] and second[0], "i32")
@@ -89,6 +89,9 @@ class BinOp(Node):
             if self.value == ".":
                 result = str(first[0]) + str(second[0])
                 return (str(result), "String")
+
+            elif self.value == "==":
+                return (int(first[0] == second[0]), "i32")
 
             else:
                 raise Exception("Invalid, operation not defined for BinOp with one string and one integer")
@@ -131,7 +134,7 @@ class While(Node):
         first = self.children[0]
         second = self.children[1]
 
-        while (first.evaluate()):
+        while (first.evaluate()[0]):
             second.evaluate()
 
 class If(Node):
@@ -183,12 +186,12 @@ class Identifier(Node):
 class Printer(Node):
 
     def evaluate(self):
-        print(self.children[0].evaluate()[0]) #se der erro tira o 0
+        print(self.children[0].evaluate()[0])
 
 class Reader(Node):
 
     def evaluate(self):
-        return int(input())
+        return (int(input()), "i32")
 
 class Assignment(Node):
 
@@ -378,9 +381,6 @@ class Tokenizer:
                 if self.source[self.position].isdigit():
                     num+=self.source[self.position]
                 else:
-                    while self.position < len(self.source) and self.source[self.position] == " ":
-                        self.position+=1
-                    print("AAA {} AAA".format(self.source[self.position]))
                     raise Exception("Invalid, cannot begin with this value")
                 
                 if self.position == len(self.source)-1:
@@ -559,7 +559,7 @@ class Parser:
                 if token.next.type == "type":
                     var_type = token.next.value
 
-                token.selectNext() #deixar?
+                token.selectNext()
 
                 if token.next.type == "SEMICOLON":
                     token.selectNext()
