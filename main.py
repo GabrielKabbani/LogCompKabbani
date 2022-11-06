@@ -2,7 +2,7 @@ import symbol
 import sys
 import re
 
-reserved_words = ["Print", "Read", "while", "if", "else"]
+reserved_words = ["Print", "Read", "while", "if", "else", "var", "i32", "String"]
 symbol_table = {}
 
 class Token:
@@ -29,49 +29,102 @@ class BinOp(Node):
         first = self.children[0].evaluate()
         second = self.children[1].evaluate()
 
-        if self.value == "+":
-            return first + second
+        if first[1] == "i32" and second[1] == "i32":
 
-        elif self.value == "-":
-            return first - second
+            if self.value == "+":
+                return (first[0] + second[0], "i32")
 
-        elif self.value == "*":
-            return first * second
+            elif self.value == "-":
+                return (first[0] - second[0], "i32")
 
-        elif self.value == "/":
-            return int(first // second)
+            elif self.value == "*":
+                return (first[0] * second[0], "i32")
 
-        elif self.value == "==":
-            return first == second
+            elif self.value == "/":
+                return (int(first[0] // second[0]), "i32")
 
-        elif self.value == ">":
-            return first > second
+            elif self.value == "==":
+                return (first[0] == second[0], "i32")
 
-        elif self.value == "<":
-            return first < second
+            elif self.value == ">":
+                return (first[0] > second[0], "i32")
 
-        elif self.value == "&&":
-            return first and second
+            elif self.value == "<":
+                return (first[0] < second[0], "i32")
 
-        elif self.value == "||":
-            return first or second
+            elif self.value == "&&":
+                return (first[0] and second[0], "i32")
+
+            elif self.value == "||":
+                return (first[0] or second[0], "i32")
+            
+            elif self.value == ".":
+                result = str(first[0]) + str(second[0])
+                return (str(result), "String")
+
+            else:
+                raise Exception("Invalid, operation not defined for BinOp with integers")
+
+        elif first[1] == "String" and second[1] == "String":
+            if self.value == ".":
+                result = str(first[0]) + str(second[0])
+                return (str(result), "String")
+
+            elif self.value == "==":
+                result = str(first[0]) == str(second[0])
+                return (int(result), "i32")
+
+            elif self.value == ">":
+                result = str(first[0]) > str(second[0])
+                return (int(result), "i32")
+
+            elif self.value == "<":
+                result = str(first[0]) < str(second[0])
+                return (int(result), "i32")
+
+            else:
+                raise Exception("Invalid, operation not defined for BinOp with strings")
+
+        elif first[1] == "String" or second[1] == "String":
+            if self.value == ".":
+                result = str(first[0]) + str(second[0])
+                return (str(result), "String")
+
+            else:
+                raise Exception("Invalid, operation not defined for BinOp with one string and one integer")
+
 
 class UnOp(Node):
     def evaluate(self):
         child = self.children[0].evaluate()
 
-        if self.value == "+":
-            return child
-        
-        elif self.value == "-":
-            return -child
+        if child[1] == "i32":    
 
-        elif self.value == "!":
-            return not(child)
+            if self.value == "+":
+                return (child[0], "i32")
+            
+            elif self.value == "-":
+                return (-child[0], "i32")
+
+            elif self.value == "!":
+                return (not(child[0]), "i32")
+
+        else:
+            raise Exception("Invalid, must be an integer to have UnOp operations")
 
 class IntVal(Node):
     def evaluate(self):
-        return int(self.value)
+        return (int(self.value), "i32")
+
+class StrVal(Node):
+    def evaluate(self):
+        return (str(self.value), "String")
+
+class VarDec(Node):
+    def evaluate(self):
+        val = self.value
+        for identifier in self.children:
+            SymbolTable.creator(identifier.value, val)
 
 class While(Node):
     def evaluate(self):
@@ -99,22 +152,38 @@ class NoOp(Node):
 class SymbolTable():
 
     @staticmethod
+    def creator(name, type):
+        if name in symbol_table:
+            raise Exception("Invalid, variable already declared")
+        else:
+            symbol_table[name] = (None, type)
+            
+
+    @staticmethod
     def getter(x):
         return symbol_table[x]
 
     @staticmethod
     def setter(x, y):
-        symbol_table[x] = y
+        if x in symbol_table: 
+            if y[1] == symbol_table[x][1]:
+                symbol_table[x] = y
+            else:
+                raise Exception("Invalid, trying to write value on wrongly casted variable")
+        else:
+            raise Exception("Invalid, variable not declared")
+
         
 class Identifier(Node):
 
     def evaluate(self):
-        return SymbolTable.getter(self.value)
+        var = SymbolTable.getter(self.value)
+        return (var[0], var[1])
 
 class Printer(Node):
 
     def evaluate(self):
-        print(self.children[0].evaluate())
+        print(self.children[0].evaluate()[0]) #se der erro tira o 0
 
 class Reader(Node):
 
@@ -135,6 +204,7 @@ class Tokenizer:
     def selectNext(self):
         token_incomplete=True
         num=""
+
         while self.position < len(self.source) and self.source[self.position] == " ":
             self.position+=1
 
@@ -182,6 +252,28 @@ class Tokenizer:
 
                 return self.next
 
+
+            elif self.source[self.position] == ".":
+                self.next = Token("DOT", self.source[self.position])
+
+                self.position += 1
+
+                return self.next
+
+            elif self.source[self.position] == ",":
+                self.next = Token("COMMA", self.source[self.position])
+
+                self.position += 1
+
+                return self.next
+
+            elif self.source[self.position] == ":":
+                self.next = Token("COLON", self.source[self.position])
+
+                self.position += 1
+
+                return self.next
+
             elif self.source[self.position] == "{":
                 self.next = Token("KEY_OPEN", self.source[self.position])
 
@@ -200,9 +292,13 @@ class Tokenizer:
                 self.next = Token("OR", "||")
                 self.position += 2
 
+                return self.next
+
             elif self.source[self.position] == "&" and self.source[self.position+1] == "&":
                 self.next = Token("AND", "&&")
                 self.position += 2
+
+                return self.next
 
             elif self.source[self.position] == "=":
                 if self.source[self.position+1] == "=":
@@ -214,6 +310,19 @@ class Tokenizer:
                     self.position += 1
 
                 return self.next
+
+            if self.source[self.position] == "\"":
+                var = ""
+                self.position+=1
+                while self.source[self.position]!= "\"":
+                    var += self.source[self.position]
+                    self.position+=1
+
+                self.position+=1
+                self.next = Token("String", var)
+                return self.next
+
+                
             
             elif self.source[self.position] == ";":
                 self.next = Token("SEMICOLON", self.source[self.position])
@@ -254,7 +363,12 @@ class Tokenizer:
                     self.position +=1
 
                 if id in reserved_words:
-                    self.next = Token(id, id)
+                    if id == "String":
+                        self.next = Token("type", "String")
+                    elif id == "i32":
+                        self.next = Token("type", "i32")
+                    else:
+                        self.next = Token(id, id)
                 else:
                     self.next = Token("IDENTIFIER", id)
 
@@ -264,7 +378,9 @@ class Tokenizer:
                 if self.source[self.position].isdigit():
                     num+=self.source[self.position]
                 else:
-                    print(self.source[self.position])
+                    while self.position < len(self.source) and self.source[self.position] == " ":
+                        self.position+=1
+                    print("AAA {} AAA".format(self.source[self.position]))
                     raise Exception("Invalid, cannot begin with this value")
                 
                 if self.position == len(self.source)-1:
@@ -310,7 +426,7 @@ class Parser:
     @staticmethod
     def parse_rel_expression(token):
         result = Parser.parse_expression(token)
-        while token.next.type == "BIGGER" or token.next.type == "SMALLER" or token.next.type == "COMPARE_EQUALS":
+        while token.next.type == "BIGGER" or token.next.type == "SMALLER" or token.next.type == "COMPARE_EQUALS" or token.next.type == "DOT":
             value=token.next.value
             token.selectNext()
             result = BinOp(value, [result, Parser.parse_expression(token)])
@@ -335,6 +451,11 @@ class Parser:
         if token.next.type == "INT":
             value = token.next.value
             result = IntVal(value)
+            token.selectNext()
+
+        elif token.next.type == "String":
+            value = token.next.value
+            result = StrVal(value)
             token.selectNext()
 
         elif token.next.type == "IDENTIFIER":
@@ -368,6 +489,7 @@ class Parser:
             raise Exception("Invalid, missing opening parenthesis")
 
         else:
+            print("ERROR TYPE VARIABLE: {}".format(token.next.type))
             raise Exception("Invalid")
         
         return result
@@ -416,6 +538,40 @@ class Parser:
                     raise Exception("Missing closing parenthesis")
             else:
                 raise Exception("Missing opening parenthesis")
+
+        elif token.next.type == "var":
+            token.selectNext()
+
+            if token.next.type == "IDENTIFIER":
+                names = [Identifier(token.next.value)]
+                token.selectNext()
+                while token.next.type == "COMMA":
+                    token.selectNext()
+                    if token.next.type == "IDENTIFIER":
+                        names.append(Identifier(token.next.value))
+                    else:
+                        raise Exception("Invalid variable after comma")
+                    token.selectNext()
+                if token.next.type == "COLON":
+                    token.selectNext()
+                else:
+                    raise Exception("Missing colon after variable names")
+                if token.next.type == "type":
+                    var_type = token.next.value
+
+                token.selectNext() #deixar?
+
+                if token.next.type == "SEMICOLON":
+                    token.selectNext()
+                    return VarDec(var_type, names)
+                    
+                else:
+                    raise Exception("Missing ';'")
+
+
+            else:
+                raise Exception("Invalid variable")
+
 
         elif token.next.type == "SEMICOLON":
             token.selectNext()
