@@ -3,6 +3,7 @@ import sys
 import re
 
 reserved_words = ["Print", "Read", "while", "if", "else", "var", "i32", "String"]
+program = sys.argv[1]
 symbol_table = {}
 
 class Token:
@@ -172,7 +173,8 @@ class IntVal(Node):
         self.id = Node.createId()
 
     def evaluate(self):
-        Assembler.addOutput("MOV EBX, {}".format(self.value))
+        print("entrou no intval")
+        Assembler.addOutput("MOV EBX, " + str(self.value))
         return (int(self.value), "i32")
 
 class StrVal(Node):
@@ -198,17 +200,17 @@ class While(Node):
         self.id = Node.createId()
 
     def evaluate(self):
-        Assembler.addOutput("LOOP_34:")
-        first = self.children[0]
+        Assembler.addOutput("LOOP_{}:".format(self.id))
+        first = self.children[0].evaluate()[0]
         Assembler.addOutput("CMP EBX, False")
-        Assembler.addOutput("JE EXIT_34") 
-        second = self.children[1]
+        Assembler.addOutput("JE EXIT_{}".format(self.id)) 
+        self.children[1].evaluate()
 
-        while (first.evaluate()[0]):
-            second.evaluate()
+        # while (first.evaluate()[0]):
+        #     second.evaluate()
 
-        Assembler.addOutput("JMP LOOP_34")
-        Assembler.addOutput("EXIT_34:")
+        Assembler.addOutput("JMP LOOP_{}".format(self.id))
+        Assembler.addOutput("EXIT_{}:".format(self.id))
 
 class If(Node):
     def __init__(self, value, children=[]):
@@ -217,26 +219,22 @@ class If(Node):
 
     def evaluate(self):
         Assembler.addOutput("if_{}:".format(self.id))
-        first = self.children[0]
+        first = self.children[0].evaluate()
         Assembler.addOutput("CMP EBX, False")
 
         if len(self.children) > 2:
             Assembler.addOutput("JE Else_{}".format(self.id))
-        else:
-            Assembler.addOutput("JE EndIf_{}".format(self.id))
-
-
-        second = self.children[1]
-        Assembler.addOutput("JMP EndIf_{}".format(self.id))
-
-        if first.evaluate():
-            second.evaluate()
-
-        elif len(self.children) > 2:
+            self.children[1].evaluate()
+            Assembler.addOutput("JMP Exit_{}".format(self.id))
             Assembler.addOutput("Else_{}:".format(self.id))
             self.children[2].evaluate()
+            Assembler.addOutput("Exit_{}:".format(self.id))
 
-        Assembler.addOutput("EndIf_{}:".format(self.id))
+        else:
+            Assembler.addOutput("JE EXIT_{}".format(self.id))
+            self.children[1].evaluate()
+            Assembler.addOutput("JMP Exit_{}".format(self.id))
+            Assembler.addOutput("Exit_{}:".format(self.id))
 
 
 class NoOp(Node):
@@ -278,8 +276,8 @@ class SymbolTable():
 class Identifier(Node):
 
     def evaluate(self):
-        Assembler.addOutput("MOV EBX, [EBP-{}]".format(SymbolTable.getter(self.value)[2]))
         var = SymbolTable.getter(self.value)
+        Assembler.addOutput("MOV EBX, [EBP -{}]".format(var[2]))
         return (var[0], var[1])
 
 class Printer(Node):
@@ -304,11 +302,21 @@ class Assignment(Node):
         super().__init__(value, children)
 
     def evaluate(self):
-        Assembler.addOutput("MOV [EBP-{}], EBX".format(SymbolTable.getter(self.children[0])[2]))
-        SymbolTable.setter(self.children[0], self.children[1].evaluate())
+        child1 = self.children[0]
+        child2 = self.children[1].evaluate()
+        SymbolTable.setter(child1, child2)
+        data = SymbolTable.getter(child1)[2]
+        Assembler.addOutput("MOV [EBP -{}], EBX".format(data))
 
 class Assembler:
     string_w = ""
+
+    program_name = ""
+    for i in sys.argv[1]:
+        if i!=".":
+            program_name += i
+        else:
+            break
 
     @staticmethod
     def addOutput(content):
@@ -406,7 +414,7 @@ class Assembler:
     MOV EAX, 1
     INT 0x80
     """
-        with open("program.asm", "w") as file:
+        with open("{}.asm".format(Assembler.program_name), "w") as file:
                 file.write(start + Assembler.string_w + finish)  
     
 class Tokenizer:
@@ -717,7 +725,9 @@ class Parser:
             if token.next.type == "EQUALS":
                 token.selectNext()
 
-                result = Assignment("EQUALS", [result, Parser.parse_rel_expression(token)])
+                pre = Parser.parse_rel_expression(token)
+
+                result = Assignment("EQUALS", [result, pre])
 
                 if token.next.type == "SEMICOLON":
                     token.selectNext()
