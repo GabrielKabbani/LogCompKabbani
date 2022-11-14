@@ -11,6 +11,9 @@ class Token:
         self.value = value
 
 class Node:
+
+    i=0
+
     def __init__(self, value, children = []):
         self.value = value
         self.children = children
@@ -18,47 +21,77 @@ class Node:
     def evaluate(self):
         pass
 
+    def createId():
+        Node.i += 1
+        return Node.i
+
+
 class Block(Node):
+    def __init__(self, value, children=[]):
+        super().__init__(value, children)
 
     def evaluate(self):
         for statement in self.children:
             statement.evaluate()
 
 class BinOp(Node):
+
+    def __init__(self, value, children=[]):
+        super().__init__(value, children)
+        self.id = Node.createId()
+
     def evaluate(self):
         first = self.children[0].evaluate()
+        Assembler.addOutput("PUSH EBX")
         second = self.children[1].evaluate()
+        Assembler.addOutput("POP EAX")
 
         if first[1] == "i32" and second[1] == "i32":
 
             if self.value == "+":
+                Assembler.addOutput("ADD EAX, EBX")
+                Assembler.addOutput("MOV EBX, EAX")
                 return (first[0] + second[0], "i32")
 
             elif self.value == "-":
+                Assembler.addOutput("SUB EAX, EBX")
+                Assembler.addOutput("MOV EBX, EAX")
                 return (first[0] - second[0], "i32")
 
             elif self.value == "*":
+                Assembler.addOutput("IMUL EBX")
+                Assembler.addOutput("MOV EBX, EAX")
                 return (first[0] * second[0], "i32")
 
             elif self.value == "/":
+                Assembler.addOutput("IDIV EBX")
+                Assembler.addOutput("MOV EBX, EAX")
                 return (int(first[0] // second[0]), "i32")
 
             elif self.value == "==":
+                Assembler.addOutput("CMP EAX, EBX")
+                Assembler.addOutput("CALL binop_je")
                 return (int(first[0] == second[0]), "i32")
 
             elif self.value == ">":
+                Assembler.addOutput("CMP EAX, EBX")
+                Assembler.addOutput("CALL binop_jg")    
                 return (int(first[0] > second[0]), "i32")
 
             elif self.value == "<":
+                Assembler.addOutput("CMP EAX, EBX")
+                Assembler.addOutput("CALL binop_jl")   
                 return (int(first[0] < second[0]), "i32")
 
             elif self.value == "&&":
+                Assembler.addOutput("AND EBX, EAX")
                 return (first[0] and second[0], "i32")
 
             elif self.value == "||":
+                Assembler.addOutput("OR EBX, EAX")
                 return (first[0] or second[0], "i32")
             
-            elif self.value == ".":
+            elif self.value == ".": #o que fazer aqui
                 result = str(first[0]) + str(second[0])
                 return (str(result), "String")
 
@@ -66,19 +99,25 @@ class BinOp(Node):
                 raise Exception("Invalid, operation not defined for BinOp with integers")
 
         elif first[1] == "String" and second[1] == "String":
-            if self.value == ".":
+            if self.value == ".":#o que fazer aqui
                 result = str(first[0]) + str(second[0])
                 return (str(result), "String")
 
             elif self.value == "==":
+                Assembler.addOutput("CMP EAX, EBX")
+                Assembler.addOutput("CALL binop_je")
                 result = str(first[0]) == str(second[0])
                 return (int(result), "i32")
 
             elif self.value == ">":
+                Assembler.addOutput("CMP EAX, EBX")
+                Assembler.addOutput("CALL binop_jg") 
                 result = str(first[0]) > str(second[0])
                 return (int(result), "i32")
 
             elif self.value == "<":
+                Assembler.addOutput("CMP EAX, EBX")
+                Assembler.addOutput("CALL binop_jl") 
                 result = str(first[0]) < str(second[0])
                 return (int(result), "i32")
 
@@ -86,11 +125,13 @@ class BinOp(Node):
                 raise Exception("Invalid, operation not defined for BinOp with strings")
 
         elif first[1] == "String" or second[1] == "String":
-            if self.value == ".":
+            if self.value == ".":#o que fazer aqui
                 result = str(first[0]) + str(second[0])
                 return (str(result), "String")
 
             elif self.value == "==":
+                Assembler.addOutput("CMP EAX, EBX")
+                Assembler.addOutput("CALL binop_je")
                 return (int(first[0] == second[0]), "i32")
 
             else:
@@ -98,68 +139,125 @@ class BinOp(Node):
 
 
 class UnOp(Node):
+    def __init__(self, value, children=[]):
+        super().__init__(value, children)
+        self.id = Node.createId()
+
     def evaluate(self):
         child = self.children[0].evaluate()
 
         if child[1] == "i32":    
 
             if self.value == "+":
+                Assembler.addOutput("ADD EBX, 0")
                 return (child[0], "i32")
             
             elif self.value == "-":
+                Assembler.addOutput("MOV EAX, {}".format(child[0]))
+                Assembler.addOutput("MOV EBX, -1")
+                Assembler.addOutput("IMUl EBX")
+                Assembler.addOutput("MOV EBX, EAX")
                 return (-child[0], "i32")
 
             elif self.value == "!":
+                Assembler.addOutput("NEG EBX")
                 return (not(child[0]), "i32")
 
         else:
             raise Exception("Invalid, must be an integer to have UnOp operations")
 
 class IntVal(Node):
+    def __init__(self, value, children=[]):
+        super().__init__(value, children)
+        self.id = Node.createId()
+
     def evaluate(self):
+        Assembler.addOutput("MOV EBX, {}".format(self.value))
         return (int(self.value), "i32")
 
 class StrVal(Node):
+    def __init__(self, value, children=[]):
+        super().__init__(value, children)
+
     def evaluate(self):
         return (str(self.value), "String")
 
 class VarDec(Node):
+    def __init__(self, value, children=[]):
+        super().__init__(value, children)
+
     def evaluate(self):
         val = self.value
         for identifier in self.children:
             SymbolTable.creator(identifier.value, val)
+            Assembler.addOutput("PUSH DWORD 0")  
 
 class While(Node):
+    def __init__(self, value, children=[]):
+        super().__init__(value, children)
+        self.id = Node.createId()
+
     def evaluate(self):
+        Assembler.addOutput("LOOP_34:")
         first = self.children[0]
+        Assembler.addOutput("CMP EBX, False")
+        Assembler.addOutput("JE EXIT_34") 
         second = self.children[1]
 
         while (first.evaluate()[0]):
             second.evaluate()
 
+        Assembler.addOutput("JMP LOOP_34")
+        Assembler.addOutput("EXIT_34:")
+
 class If(Node):
+    def __init__(self, value, children=[]):
+        super().__init__(value, children)
+        self.id = Node.createId()
+
     def evaluate(self):
+        Assembler.addOutput("if_{}:".format(self.id))
         first = self.children[0]
+        Assembler.addOutput("CMP EBX, False")
+
+        if len(self.children) > 2:
+            Assembler.addOutput("JE Else_{}".format(self.id))
+        else:
+            Assembler.addOutput("JE EndIf_{}".format(self.id))
+
+
         second = self.children[1]
+        Assembler.addOutput("JMP EndIf_{}".format(self.id))
+
         if first.evaluate():
             second.evaluate()
 
         elif len(self.children) > 2:
+            Assembler.addOutput("Else_{}:".format(self.id))
             self.children[2].evaluate()
+
+        Assembler.addOutput("EndIf_{}:".format(self.id))
 
 
 class NoOp(Node):
+    def __init__(self, value, children=[]):
+        pass
+
     def evaluate(self):
         pass
 
 class SymbolTable():
 
+
+    stat = 0
+
     @staticmethod
     def creator(name, type):
+        SymbolTable.stat+=4
         if name in symbol_table:
             raise Exception("Invalid, variable already declared")
         else:
-            symbol_table[name] = (None, type)
+            symbol_table[name] = [None, type, SymbolTable.stat]
             
 
     @staticmethod
@@ -170,7 +268,7 @@ class SymbolTable():
     def setter(x, y):
         if x in symbol_table: 
             if y[1] == symbol_table[x][1]:
-                symbol_table[x] = y
+                symbol_table[x][0]= y[0]
             else:
                 raise Exception("Invalid, trying to write value on wrongly casted variable")
         else:
@@ -180,23 +278,136 @@ class SymbolTable():
 class Identifier(Node):
 
     def evaluate(self):
+        Assembler.addOutput("MOV EBX, [EBP-{}]".format(SymbolTable.getter(self.value)[2]))
         var = SymbolTable.getter(self.value)
         return (var[0], var[1])
 
 class Printer(Node):
+    def __init__(self, value, children=[]):
+        super().__init__(value, children)
 
     def evaluate(self):
         print(self.children[0].evaluate()[0])
+        Assembler.addOutput("PUSH EBX")
+        Assembler.addOutput("CALL print")
+        Assembler.addOutput("POP EBX")  
 
 class Reader(Node):
+    def __init__(self, value, children=[]):
+        super().__init__(value, children)
 
     def evaluate(self):
         return (int(input()), "i32")
 
 class Assignment(Node):
+    def __init__(self, value, children=[]):
+        super().__init__(value, children)
 
     def evaluate(self):
+        Assembler.addOutput("MOV [EBP-{}], EBX".format(SymbolTable.getter(self.children[0])[2]))
         SymbolTable.setter(self.children[0], self.children[1].evaluate())
+
+class Assembler:
+    string_w = ""
+
+    @staticmethod
+    def addOutput(content):
+        Assembler.string_w += content + "\n"
+
+    @staticmethod
+    def create():
+        start = """; constantes
+    SYS_EXIT equ 1
+    SYS_READ equ 3
+    SYS_WRITE equ 4
+    STDIN equ 0
+    STDOUT equ 1
+    True equ 1
+    False equ 0
+
+    segment .data
+
+    segment .bss  ; variaveis
+    res RESB 1
+
+    section .text
+    global _start
+
+    print:  ; subrotina print
+
+    PUSH EBP ; guarda o base pointer
+    MOV EBP, ESP ; estabelece um novo base pointer
+
+    MOV EAX, [EBP+8] ; 1 argumento antes do RET e EBP
+    XOR ESI, ESI
+
+    print_dec: ; empilha todos os digitos
+    MOV EDX, 0
+    MOV EBX, 0x000A
+    DIV EBX
+    ADD EDX, '0'
+    PUSH EDX
+    INC ESI ; contador de digitos
+    CMP EAX, 0
+    JZ print_next ; quando acabar pula
+    JMP print_dec
+
+    print_next:
+    CMP ESI, 0
+    JZ print_exit ; quando acabar de imprimir
+    DEC ESI
+
+    MOV EAX, SYS_WRITE
+    MOV EBX, STDOUT
+
+    POP ECX
+    MOV [res], ECX
+    MOV ECX, res
+
+    MOV EDX, 1
+    INT 0x80
+    JMP print_next
+
+    print_exit:
+    POP EBP
+    RET
+
+    ; subrotinas if/while
+    binop_je:
+    JE binop_true
+    JMP binop_false
+
+    binop_jg:
+    JG binop_true
+    JMP binop_false
+
+    binop_jl:
+    JL binop_true
+    JMP binop_false
+
+    binop_false:
+    MOV EBX, False
+    JMP binop_exit
+    binop_true:
+    MOV EBX, True
+    binop_exit:
+    RET
+
+    _start:
+
+    PUSH EBP ; guarda o base pointer
+    MOV EBP, ESP ; estabelece um novo base pointer
+
+    ; codigo gerado pelo compilador
+
+    """
+        finish = """; interrupcao de saida
+    POP EBP
+    MOV EAX, 1
+    INT 0x80
+    """
+        with open("program.asm", "w") as file:
+                file.write(start + Assembler.string_w + finish)  
     
 class Tokenizer:
     def __init__(self, source):
@@ -673,6 +884,7 @@ class Pre_pro:
 def main():
     with open(sys.argv[1], "r") as file:
         Parser.run(file.read())
+    Assembler.create()
 
 
 main()
