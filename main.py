@@ -223,18 +223,18 @@ class If(Node):
         Assembler.addOutput("CMP EBX, False")
 
         if len(self.children) > 2:
-            Assembler.addOutput("JE Else_{}".format(self.id))
+            Assembler.addOutput("JE ELSE_{}".format(self.id))
             self.children[1].evaluate()
-            Assembler.addOutput("JMP Exit_{}".format(self.id))
-            Assembler.addOutput("Else_{}:".format(self.id))
+            Assembler.addOutput("JMP EXIT_{}".format(self.id))
+            Assembler.addOutput("ELSE_{}:".format(self.id))
             self.children[2].evaluate()
-            Assembler.addOutput("Exit_{}:".format(self.id))
+            Assembler.addOutput("EXIT_{}:".format(self.id))
 
         else:
             Assembler.addOutput("JE EXIT_{}".format(self.id))
             self.children[1].evaluate()
-            Assembler.addOutput("JMP Exit_{}".format(self.id))
-            Assembler.addOutput("Exit_{}:".format(self.id))
+            Assembler.addOutput("JMP EXOT_{}".format(self.id))
+            Assembler.addOutput("EXIT_{}:".format(self.id))
 
 
 class NoOp(Node):
