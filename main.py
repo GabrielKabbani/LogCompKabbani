@@ -28,8 +28,6 @@ class Node:
 
 
 class Block(Node):
-    def __init__(self, value, children=[]):
-        super().__init__(value, children)
 
     def evaluate(self):
         for statement in self.children:
@@ -37,11 +35,8 @@ class Block(Node):
 
 class BinOp(Node):
 
-    def __init__(self, value, children=[]):
-        super().__init__(value, children)
-        self.id = Node.createId()
-
     def evaluate(self):
+        self.id = Node.createId()
         first = self.children[0].evaluate()
         Assembler.addOutput("PUSH EBX")
         second = self.children[1].evaluate()
@@ -139,12 +134,10 @@ class BinOp(Node):
                 raise Exception("Invalid, operation not defined for BinOp with one string and one integer")
 
 
-class UnOp(Node):
-    def __init__(self, value, children=[]):
-        super().__init__(value, children)
-        self.id = Node.createId()
+class UnOp(Node):        
 
     def evaluate(self):
+        self.id = Node.createId()
         child = self.children[0].evaluate()
 
         if child[1] == "i32":    
@@ -168,25 +161,18 @@ class UnOp(Node):
             raise Exception("Invalid, must be an integer to have UnOp operations")
 
 class IntVal(Node):
-    def __init__(self, value, children=[]):
-        super().__init__(value, children)
-        self.id = Node.createId()
 
     def evaluate(self):
-        print("entrou no intval")
+        self.id = Node.createId()
         Assembler.addOutput("MOV EBX, " + str(self.value))
         return (int(self.value), "i32")
 
 class StrVal(Node):
-    def __init__(self, value, children=[]):
-        super().__init__(value, children)
 
     def evaluate(self):
         return (str(self.value), "String")
 
 class VarDec(Node):
-    def __init__(self, value, children=[]):
-        super().__init__(value, children)
 
     def evaluate(self):
         val = self.value
@@ -195,11 +181,9 @@ class VarDec(Node):
             Assembler.addOutput("PUSH DWORD 0")  
 
 class While(Node):
-    def __init__(self, value, children=[]):
-        super().__init__(value, children)
-        self.id = Node.createId()
 
     def evaluate(self):
+        self.id = Node.createId()
         Assembler.addOutput("LOOP_{}:".format(self.id))
         first = self.children[0].evaluate()[0]
         Assembler.addOutput("CMP EBX, False")
@@ -213,11 +197,9 @@ class While(Node):
         Assembler.addOutput("EXIT_{}:".format(self.id))
 
 class If(Node):
-    def __init__(self, value, children=[]):
-        super().__init__(value, children)
-        self.id = Node.createId()
 
     def evaluate(self):
+        self.id = Node.createId()
         Assembler.addOutput("if_{}:".format(self.id))
         first = self.children[0].evaluate()
         Assembler.addOutput("CMP EBX, False")
@@ -229,11 +211,10 @@ class If(Node):
             Assembler.addOutput("ELSE_{}:".format(self.id))
             self.children[2].evaluate()
             Assembler.addOutput("EXIT_{}:".format(self.id))
-
         else:
             Assembler.addOutput("JE EXIT_{}".format(self.id))
             self.children[1].evaluate()
-            Assembler.addOutput("JMP EXOT_{}".format(self.id))
+            Assembler.addOutput("JMP EXIT_{}".format(self.id))
             Assembler.addOutput("EXIT_{}:".format(self.id))
 
 
@@ -281,8 +262,6 @@ class Identifier(Node):
         return (var[0], var[1])
 
 class Printer(Node):
-    def __init__(self, value, children=[]):
-        super().__init__(value, children)
 
     def evaluate(self):
         print(self.children[0].evaluate()[0])
@@ -298,8 +277,6 @@ class Reader(Node):
         return (int(input()), "i32")
 
 class Assignment(Node):
-    def __init__(self, value, children=[]):
-        super().__init__(value, children)
 
     def evaluate(self):
         child1 = self.children[0]
