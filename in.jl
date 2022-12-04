@@ -1,14 +1,9 @@
-
-  {
-    var x_2: i32;
-
-    x_2 = 0;
-
-    while (x_2 < 5){
-        Print(x_2);
-        x_2 = x_2 +1;
-
-    }
-
-    
+fn soma(x: i32, y: i32) -> i32 { var a: i32;
+a = x + y;
+Print(a);
+return a; }
+fn Main() { var a: i32; var b: i32; a = 3;
+  b = soma(a, 4);
+  Print(a);
+  Print(b);
 }
