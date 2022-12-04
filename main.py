@@ -127,7 +127,6 @@ class VarDec(Node):
     def evaluate(self, st):
         val = self.value
         for identifier in self.children:
-            print("NAME 3: {}".format(identifier.value))
             st.creator(identifier.value, val)
 
 class While(Node):
@@ -222,12 +221,11 @@ class FuncCall(Node):
             if (len(funcdec.children) - 2) == len(self.children):
 
                 for dec, attribute in zip(args, self.children):
-                    print("NAME 1: {}".format(dec.children[0]))
                     st_current.creator(dec.children[0], dec.value)
 
                     if attribute.value in st.symbol_table:
                         type = st.getter(attribute.value)[1]
-                        print("NAME 2: {}".format(attribute.value))
+
                         st_current.creator(attribute.value, type)
                         st_current.setter(attribute.value, st.getter(attribute.value))
                         st_current.setter(dec.children[0], st.getter(attribute.value))
