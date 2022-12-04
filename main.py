@@ -22,7 +22,9 @@ class Block(Node):
 
     def evaluate(self, st):
         for statement in self.children:
-            statement.evaluate(st)
+            result = statement.evaluate(st)
+            if result != None:
+                return result
 
 class BinOp(Node):
     def evaluate(self, st):
@@ -177,6 +179,7 @@ class SymbolTable():
 
 
     def creator(self, name, type):
+
         if name in self.symbol_table:
             raise Exception("Invalid, variable already declared + {}".format(name))
         else:
@@ -189,6 +192,7 @@ class SymbolTable():
 
 
     def setter(self, x, y):
+        self.symbol_table[x] = y
         if x in self.symbol_table: 
             if y[1] == self.symbol_table[x][1]:
                 self.symbol_table[x] = y
@@ -201,7 +205,7 @@ class FuncDec(Node):
     def evaluate(self, st):
         vardec = self.children[0]
         type = self.value
-
+        
         FuncTable.creator(type, vardec, self)
 
 class FuncCall(Node):
@@ -231,10 +235,10 @@ class FuncCall(Node):
                         st_current.setter(dec.children[0], st.getter(attribute.value))
                     else:
                         st_current.setter(dec.children[0], attribute.evaluate(st_current))
-            
-                return block.evaluate(st_current)
             else:
                 raise Exception("Wrong # of function arguments")
+        
+        return block.evaluate(st_current)
 
 class Return(Node):
     def evaluate(self, st):
@@ -448,7 +452,7 @@ class Tokenizer:
 
 
 
-            else: #futuramente implementar enum pra verificar se é numero mesmo
+            else: 
                 if self.source[self.position].isdigit():
                     num+=self.source[self.position]
                 else:
@@ -479,7 +483,7 @@ class Tokenizer:
             return self.next
 
 
-class Parser: #deve ter coisa errada na parse_declaration, e acho que a functable ta errada pq n tem a brisa do endereco e falta o bagulho do ->
+class Parser: 
     
     def __init__(self, token):
         self.token = token
@@ -543,7 +547,6 @@ class Parser: #deve ter coisa errada na parse_declaration, e acho que a functabl
                         result = FuncDec(func_id, children)
                         result.value = type
                         return result
-
 
                     children.append(Parser.parse_block(token))
                     result = FuncDec(func_id, children)
@@ -626,7 +629,6 @@ class Parser: #deve ter coisa errada na parse_declaration, e acho que a functabl
                     args.append(Parser.parse_rel_expression(token))
                     if token.next.type == "COMMA":
                         token.selectNext()
-
                 result = FuncCall(id, args)
                 token.selectNext()
 
@@ -672,10 +674,8 @@ class Parser: #deve ter coisa errada na parse_declaration, e acho que a functabl
 
             token.selectNext()
 
-
             if token.next.type == "EQUALS":
                 token.selectNext()
-
                 result = Assignment("EQUALS", [result, Parser.parse_rel_expression(token)])
 
                 if token.next.type == "SEMICOLON":
