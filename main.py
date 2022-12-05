@@ -160,7 +160,6 @@ class FuncTable:
     def creator(type, name, ref):
         if name in func_table:
             raise Exception("Invalid, variable already declared")
-
         else:
             func_table[name] = [type, ref]
 
@@ -168,7 +167,6 @@ class FuncTable:
     def getter(name):
         if name not in func_table:
             raise Exception("Invalid, variable already declared + {}".format(name))
-        
         return func_table[name][1]
 
 
@@ -192,7 +190,7 @@ class SymbolTable():
 
 
     def setter(self, x, y):
-        self.symbol_table[x] = y
+        
         if x in self.symbol_table: 
             if y[1] == self.symbol_table[x][1]:
                 self.symbol_table[x] = y
